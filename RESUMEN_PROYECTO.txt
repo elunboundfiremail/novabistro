@@ -1,0 +1,147 @@
+﻿================================================================================
+NOVABISTRO - SISTEMA DE GESTION DE RESTAURANTE
+================================================================================
+
+UBICACION DEL PROYECTO:
+F:\datafiles\hckrmn\Carrera\Carrera\tecnologias web1\PROYECTO\novabistro
+
+ESTRUCTURA DEL PROYECTO:
+novabistro/
+├── main.py                  (Aplicacion principal FastAPI)
+├── pyproject.toml          (Configuracion y dependencias)
+├── README.md               (Documentacion del proyecto)
+├── .gitignore              (Archivos ignorados)
+├── .python-version         (Version de Python)
+├── base_datos/
+│   └── schema.sql          (Script de creacion de tablas PostgreSQL)
+├── config/
+│   └── conexionDB.py       (Configuracion de conexion a BD)
+└── routes/
+    ├── roles.py            (CRUD de roles)
+    ├── personal.py         (CRUD de personal)
+    ├── mesas.py            (CRUD de mesas)
+    ├── categorias.py       (CRUD de categorias)
+    ├── productos.py        (CRUD de productos)
+    └── pedidos.py          (CRUD de pedidos)
+
+TECNOLOGIAS UTILIZADAS:
+- FastAPI (Framework web)
+- PostgreSQL (Base de datos)
+- psycopg (Driver de PostgreSQL)
+- Pydantic (Validacion de datos)
+- Uvicorn (Servidor ASGI)
+- UV (Gestor de paquetes)
+
+CONFIGURACION DE BASE DE DATOS:
+- Host: localhost
+- Puerto: 5432
+- Usuario: postgres
+- Password: postgres
+- Base de datos: novabistro
+
+PASOS PARA EJECUTAR EL PROYECTO:
+
+1. Crear la base de datos en PostgreSQL:
+   psql -U postgres
+   CREATE DATABASE novabistro;
+   \q
+
+2. Ejecutar el script de creacion de tablas:
+   cd F:\datafiles\hckrmn\Carrera\Carrera\tecnologias web1\PROYECTO\novabistro
+   psql -U postgres -d novabistro -f base_datos\schema.sql
+
+3. Instalar dependencias con UV:
+   uv sync
+
+4. Ejecutar la aplicacion:
+   uv run uvicorn main:app --reload
+
+5. Acceder a la API:
+   - API: http://127.0.0.1:8000
+   - Documentacion Swagger: http://127.0.0.1:8000/docs
+   - ReDoc: http://127.0.0.1:8000/redoc
+
+ENDPOINTS DISPONIBLES (31 TOTAL):
+
+ROLES (/roles):
+- GET /roles                - Listar todos los roles
+- POST /roles               - Crear nuevo rol
+- PUT /roles/{id}           - Actualizar rol
+- DELETE /roles/{id}        - Eliminar rol (soft delete)
+
+PERSONAL (/personal):
+- GET /personal             - Listar todo el personal
+- POST /personal            - Crear nuevo personal
+- PUT /personal/{id}        - Actualizar personal
+- DELETE /personal/{id}     - Eliminar personal (soft delete)
+
+MESAS (/mesas):
+- GET /mesas                - Listar todas las mesas
+- POST /mesas               - Crear nueva mesa
+- PUT /mesas/{id}           - Actualizar mesa
+- DELETE /mesas/{id}        - Eliminar mesa (soft delete)
+
+CATEGORIAS (/categorias):
+- GET /categorias           - Listar todas las categorias
+- POST /categorias          - Crear nueva categoria
+- PUT /categorias/{id}      - Actualizar categoria
+- DELETE /categorias/{id}   - Eliminar categoria (soft delete)
+
+PRODUCTOS (/productos):
+- GET /productos            - Listar todos los productos
+- POST /productos           - Crear nuevo producto
+- PUT /productos/{id}       - Actualizar producto
+- DELETE /productos/{id}    - Eliminar producto (soft delete)
+
+PEDIDOS (/pedidos):
+- GET /pedidos              - Listar todos los pedidos
+- GET /pedidos/estado/{estado} - Filtrar pedidos por estado
+- POST /pedidos             - Crear nuevo pedido
+- PUT /pedidos/{id}         - Actualizar pedido
+- DELETE /pedidos/{id}      - Eliminar pedido (soft delete)
+
+PRUEBAS CON THUNDERCLIENT (VS CODE):
+
+1. Instalar extension ThunderClient en VS Code
+
+2. Ejemplos de peticiones:
+
+GET http://127.0.0.1:8000/roles
+(Obtener todos los roles)
+
+POST http://127.0.0.1:8000/roles
+Content-Type: application/json
+{
+  "nombre": "Mesero",
+  "descripcion": "Personal de atencion al cliente"
+}
+
+POST http://127.0.0.1:8000/categorias
+Content-Type: application/json
+{
+  "nombre": "Platos principales",
+  "descripcion": "Platos fuertes del menu"
+}
+
+POST http://127.0.0.1:8000/productos
+Content-Type: application/json
+{
+  "nombre": "Pique macho",
+  "descripcion": "Plato tipico boliviano",
+  "precio_bs": 45.00,
+  "id_categoria": 1,
+  "disponible": true
+}
+
+TABLAS EN LA BASE DE DATOS:
+- roles (id_rol, nombre, descripcion, activo)
+- personal (id_personal, ci, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, direccion, telefono, email, id_rol, activo)
+- mesas (id_mesa, numero, capacidad, ubicacion, estado, activo)
+- categorias (id_categoria, nombre, descripcion, activo)
+- productos (id_producto, nombre, descripcion, precio_bs, id_categoria, disponible, activo)
+- pedidos (id_pedido, numero_pedido, id_mesa, id_personal, fecha_pedido, estado, total_bs, observaciones, activo)
+- detalle_pedidos (id_detalle, id_pedido, id_producto, cantidad, precio_unitario_bs, subtotal_bs, observaciones)
+
+================================================================================
+PROYECTO COMPLETADO - LISTO PARA USAR
+================================================================================
