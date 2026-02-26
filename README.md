@@ -28,7 +28,6 @@ El sistema esta diseñado especificamente para el contexto boliviano, utilizando
 - Control de mesas y ubicaciones
 - Administracion de productos y categorias
 - Sistema completo de pedidos
-- Manejo de precios en Bolivianos (Bs)
 - Actualizaciones en tiempo real
 - Soft delete (eliminacion logica)
 - Base de datos optimizada con indices
