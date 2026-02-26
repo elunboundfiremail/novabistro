@@ -230,21 +230,16 @@ Para probar los endpoints se puede utilizar:
 
 Todas las pruebas actuales han sido exitosas (100% de endpoints funcionales).
 
-## Documentacion Adicional
 
-Para documentacion tecnica completa, ver:
-- `documentacion/DOCUMENTO_PROYECTO_NOVABISTRO.txt` - Documentacion exhaustiva del proyecto
-
-## Autores
-
+## Autor
+- JONAHTAN ZUBIETA
 Proyecto academico desarrollado para la materia Tecnologias Web I
 
-- Universidad: [Tu Universidad]
+- Universidad: UPDS
 - Fecha: Febrero 2026
 
 ## Proximas Funcionalidades
 
-- [ ] Sistema de autenticacion con JWT
 - [ ] WebSockets para actualizaciones en tiempo real
 - [ ] Frontend web responsivo
 - [ ] Sistema de reportes y estadisticas
