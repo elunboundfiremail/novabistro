@@ -13,6 +13,7 @@ class Mesa(BaseModel):
 
 @router.get('/')
 async def listar_mesas(conn = Depends(get_db)):
+    print("listando pedidos")
     async with conn.cursor() as cur:
         await cur.execute('SELECT * FROM mesas WHERE activo = TRUE')
         mesas = await cur.fetchall()
