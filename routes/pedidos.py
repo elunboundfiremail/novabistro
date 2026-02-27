@@ -35,6 +35,7 @@ async def listar_pedidos_por_estado(estado: str, conn = Depends(get_db)):
 
 @router.get('/detalle/{id_pedido}')
 async def obtener_pedido_con_detalles(id_pedido: int, conn = Depends(get_db)):
+    print("listando pedidos")
     """Obtener un pedido específico con todos sus detalles"""
     async with conn.cursor() as cur:
         # Obtener datos del pedido
@@ -49,7 +50,7 @@ async def obtener_pedido_con_detalles(id_pedido: int, conn = Depends(get_db)):
         if not pedido:
             return {'error': 'Pedido no encontrado'}
         
-        # Obtener detalles del pedido
+       
         await cur.execute(
             '''SELECT dp.id_detalle, dp.id_producto, p.nombre AS producto,
                       dp.cantidad, dp.precio_unitario_bs, dp.subtotal_bs, dp.observaciones
