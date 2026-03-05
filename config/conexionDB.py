@@ -10,8 +10,9 @@ async def lifespan(app):
         conninfo='postgresql://postgres:12345678@localhost:5432/novabistro',
         min_size=1,
         max_size=10,
-        open=True
+        open=False
     )
+    await pool.open()
     yield
     await pool.close()
 
