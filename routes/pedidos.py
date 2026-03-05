@@ -88,54 +88,60 @@ async def obtener_pedido_con_detalles(id_pedido: int, conn = Depends(get_db)):
 
 @router.post('/')
 async def crear_pedido(pedido: Pedido, conn = Depends(get_db)):
-    async with conn.cursor() as cur:
-        # Calcular el total del pedido
-        total_bs = 0.00
-        detalles_con_precios = []
-        
-        # Obtener precio de cada producto y calcular subtotales
-        for detalle in pedido.detalles:
+    try:
+        async with conn.cursor() as cur:
+            # Calcular el total del pedido
+            total_bs = 0.00
+            detalles_con_precios = []
+            
+            # Obtener precio de cada producto y calcular subtotales
+            for detalle in pedido.detalles:
+                await cur.execute(
+                    'SELECT precio_bs FROM productos WHERE id_producto = %s AND activo = TRUE',
+                    (detalle.id_producto,)
+                )
+                resultado = await cur.fetchone()
+                if resultado:
+                    precio_unitario = float(resultado[0])
+                    subtotal = precio_unitario * detalle.cantidad
+                    total_bs += subtotal
+                    detalles_con_precios.append({
+                        'id_producto': detalle.id_producto,
+                        'cantidad': detalle.cantidad,
+                        'precio_unitario': precio_unitario,
+                        'subtotal': subtotal,
+                        'observaciones': detalle.observaciones
+                    })
+                else:
+                    return {'error': f'Producto con ID {detalle.id_producto} no encontrado'}
+            
+            # Insertar el pedido principal
             await cur.execute(
-                'SELECT precio_bs FROM productos WHERE id_producto = %s AND activo = TRUE',
-                (detalle.id_producto,)
+                '''INSERT INTO pedidos (numero_pedido, id_mesa, id_personal, estado, total_bs, observaciones) 
+                   VALUES (%s, %s, %s, %s, %s, %s) RETURNING id_pedido''',
+                (pedido.numero_pedido, pedido.id_mesa, pedido.id_personal, 
+                 pedido.estado, total_bs, pedido.observaciones)
             )
-            resultado = await cur.fetchone()
-            if resultado:
-                precio_unitario = float(resultado[0])
-                subtotal = precio_unitario * detalle.cantidad
-                total_bs += subtotal
-                detalles_con_precios.append({
-                    'id_producto': detalle.id_producto,
-                    'cantidad': detalle.cantidad,
-                    'precio_unitario': precio_unitario,
-                    'subtotal': subtotal,
-                    'observaciones': detalle.observaciones
-                })
-        
-        # Insertar el pedido principal
-        await cur.execute(
-            '''INSERT INTO pedidos (numero_pedido, id_mesa, id_personal, estado, total_bs, observaciones) 
-               VALUES (%s, %s, %s, %s, %s, %s) RETURNING id_pedido''',
-            (pedido.numero_pedido, pedido.id_mesa, pedido.id_personal, 
-             pedido.estado, total_bs, pedido.observaciones)
-        )
-        id_pedido = await cur.fetchone()[0]
-        
-        # Insertar los detalles del pedido
-        for detalle in detalles_con_precios:
-            await cur.execute(
-                '''INSERT INTO detalle_pedidos (id_pedido, id_producto, cantidad, precio_unitario_bs, subtotal_bs, observaciones)
-                   VALUES (%s, %s, %s, %s, %s, %s)''',
-                (id_pedido, detalle['id_producto'], detalle['cantidad'], 
-                 detalle['precio_unitario'], detalle['subtotal'], detalle['observaciones'])
-            )
-        
-        return {
-            'id_pedido': id_pedido,
-            'total_bs': total_bs,
-            'cantidad_productos': len(detalles_con_precios),
-            'mensaje': 'Pedido creado exitosamente con sus detalles'
-        }
+            id_pedido_row = await cur.fetchone()
+            id_pedido = id_pedido_row[0]
+            
+            # Insertar los detalles del pedido
+            for detalle in detalles_con_precios:
+                await cur.execute(
+                    '''INSERT INTO detalle_pedidos (id_pedido, id_producto, cantidad, precio_unitario_bs, subtotal_bs, observaciones)
+                       VALUES (%s, %s, %s, %s, %s, %s)''',
+                    (id_pedido, detalle['id_producto'], detalle['cantidad'], 
+                     detalle['precio_unitario'], detalle['subtotal'], detalle['observaciones'])
+                )
+            
+            return {
+                'id_pedido': id_pedido,
+                'total_bs': total_bs,
+                'cantidad_productos': len(detalles_con_precios),
+                'mensaje': 'Pedido creado exitosamente con sus detalles'
+            }
+    except Exception as e:
+        return {'error': str(e)}
 
 @router.patch('/{id_pedido}/estado')
 async def cambiar_estado_pedido(id_pedido: int, estado: str, conn = Depends(get_db)):
