@@ -167,6 +167,7 @@ async def cambiar_estado_pedido(id_pedido: int, estado: str, conn = Depends(get_
 
 @router.put('/{id}')
 async def actualizar_pedido(id: int, pedido: Pedido, conn = Depends(get_db)):
+    print("actualizando pedido")
     async with conn.cursor() as cur:
         await cur.execute(
             '''UPDATE pedidos SET numero_pedido = %s, id_mesa = %s, id_personal = %s, 

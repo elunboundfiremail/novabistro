@@ -32,21 +32,6 @@ async def reporte_general(conn = Depends(get_db)):
             ORDER BY total_bs DESC
         ''')
         res_categorias = await cur.fetchall()
-        
-        await cur.execute('''
-            SELECT 
-                p.nombre as producto,
-                SUM(dp.cantidad) as cantidad_total,
-                SUM(dp.subtotal_bs) as total_generado_bs
-            FROM detalle_pedidos dp
-            JOIN productos p ON dp.id_producto = p.id_producto
-            JOIN pedidos ped ON dp.id_pedido = ped.id_pedido
-            WHERE ped.activo = TRUE AND ped.estado != 'cancelado'
-            GROUP BY p.nombre
-            ORDER BY cantidad_total DESC
-            LIMIT 5
-        ''')
-        res_productos = await cur.fetchall()
 
         return {
             'resumen_general': {
@@ -57,10 +42,6 @@ async def reporte_general(conn = Depends(get_db)):
             'ventas_por_categoria': [
                 {'categoria': r[0], 'cantidad': r[1], 'total_bs': float(r[2])}
                 for r in res_categorias
-            ],
-            'top_productos': [
-                {'producto': r[0], 'cantidad': r[1], 'total_bs': float(r[2])}
-                for r in res_productos
             ]
         }
 
