@@ -1,0 +1,14 @@
+body { background-color: #0f0f0f; color: #e5e7eb; }
+input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+.header-bistro { background-color: #1a0f0a; border-bottom: 2px solid #3d1f16; }
+.panel-oscuro { background-color: #171717; border: 1px solid #262626; border-radius: 8px; }
+.boton-accion { background-color: #92400e; color: white; transition: all 0.2s; }
+.boton-accion:hover { background-color: #b45309; }
+.boton-cantidad { background-color: #262626; color: white; width: 28px; height: 28px; border-radius: 4px; border: 1px solid #404040; }
+.boton-eliminar { background-color: #7f1d1d; color: white; width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+.boton-nota { background-color: #374151; color: #fbbf24; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 900; text-transform: uppercase; }
+.seccion { display: none; }
+.activa { display: block; }
+.tabla-scroll { overflow-x: auto; white-space: nowrap; }
+@media print { .no-imprimir { display: none; } .solo-imprimir { display: block; color: black; background: white; padding: 40px; } }

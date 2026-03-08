@@ -1,4 +1,4 @@
-﻿[project]
+[project]
 name = "novabistro"
 version = "0.1.0"
 description = "Sistema de gestion para restaurante NovaBistro"
@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.132.0",
+    "passlib[bcript,bcrypt]>=1.7.4",
     "psycopg>=3.3.3",
     "psycopg-binary>=3.3.3",
     "psycopg-pool>=3.3.0",

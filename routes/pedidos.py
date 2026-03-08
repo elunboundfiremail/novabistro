@@ -1,8 +1,9 @@
-﻿from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 from config.conexionDB import get_db
+from psycopg.rows import dict_row
 
 router = APIRouter(prefix='/pedidos', tags=['Pedidos'])
 
@@ -12,37 +13,51 @@ class DetallePedido(BaseModel):
     observaciones: Optional[str] = None
 
 class Pedido(BaseModel):
-    numero_pedido: str
+    numero_pedido: Optional[str] = None
     id_mesa: int
     id_personal: int
     estado: Optional[str] = 'pendiente'
-    total_bs: Optional[float] = 0.0
     observaciones: Optional[str] = None
     detalles: List[DetallePedido] = []
 
 @router.get('/')
 async def listar_pedidos(conn = Depends(get_db)):
-    async with conn.cursor() as cur:
-        await cur.execute('SELECT * FROM pedidos WHERE activo = TRUE ORDER BY fecha_pedido DESC')
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute('''
+            SELECT p.*, COALESCE(SUM(dp.cantidad * dp.precio_unitario_bs), 0) as total_bs
+            FROM pedidos p
+            LEFT JOIN detalle_pedidos dp ON p.id_pedido = dp.id_pedido
+            WHERE p.activo = TRUE 
+            GROUP BY p.id_pedido
+            ORDER BY p.fecha_pedido DESC
+        ''')
         pedidos = await cur.fetchall()
         return pedidos
 
 @router.get('/estado/{estado}')
 async def listar_pedidos_por_estado(estado: str, conn = Depends(get_db)):
-    async with conn.cursor() as cur:
-        await cur.execute('SELECT * FROM pedidos WHERE estado = %s AND activo = TRUE', (estado,))
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute('''
+            SELECT p.*, COALESCE(SUM(dp.cantidad * dp.precio_unitario_bs), 0) as total_bs
+            FROM pedidos p
+            LEFT JOIN detalle_pedidos dp ON p.id_pedido = dp.id_pedido
+            WHERE p.estado = %s AND p.activo = TRUE
+            GROUP BY p.id_pedido
+        ''', (estado,))
         pedidos = await cur.fetchall()
         return pedidos
 
 @router.get('/detalle/{id_pedido}')
 async def obtener_pedido_con_detalles(id_pedido: int, conn = Depends(get_db)):
-    """Obtener un pedido específico con todos sus detalles"""
-    async with conn.cursor() as cur:
-        # Obtener datos del pedido
+    async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
-            '''SELECT id_pedido, numero_pedido, id_mesa, id_personal, 
-                      fecha_pedido, estado, total_bs, observaciones 
-               FROM pedidos WHERE id_pedido = %s AND activo = TRUE''',
+            '''SELECT p.id_pedido, p.numero_pedido, p.id_mesa, p.id_personal, 
+                      p.fecha_pedido, p.estado, p.observaciones,
+                      COALESCE(SUM(dp.cantidad * dp.precio_unitario_bs), 0) as total_bs
+               FROM pedidos p 
+               LEFT JOIN detalle_pedidos dp ON p.id_pedido = dp.id_pedido
+               WHERE p.id_pedido = %s AND p.activo = TRUE
+               GROUP BY p.id_pedido''',
             (id_pedido,)
         )
         pedido = await cur.fetchone()
@@ -50,51 +65,28 @@ async def obtener_pedido_con_detalles(id_pedido: int, conn = Depends(get_db)):
         if not pedido:
             return {'error': 'Pedido no encontrado'}
         
-        # Obtener detalles del pedido
         await cur.execute(
-            '''SELECT dp.id_detalle, dp.id_producto, p.nombre AS producto,
-                      dp.cantidad, dp.precio_unitario_bs, dp.subtotal_bs, dp.observaciones
+            '''SELECT dp.id_detalle, dp.id_producto, pr.nombre AS producto,
+                      dp.cantidad, dp.precio_unitario_bs, 
+                      (dp.cantidad * dp.precio_unitario_bs) as subtotal_bs, dp.observaciones
                FROM detalle_pedidos dp
-               JOIN productos p ON dp.id_producto = p.id_producto
+               JOIN productos pr ON dp.id_producto = pr.id_producto
                WHERE dp.id_pedido = %s''',
             (id_pedido,)
         )
         detalles = await cur.fetchall()
         
         return {
-            'pedido': {
-                'id_pedido': pedido[0],
-                'numero_pedido': pedido[1],
-                'id_mesa': pedido[2],
-                'id_personal': pedido[3],
-                'fecha_pedido': str(pedido[4]),
-                'estado': pedido[5],
-                'total_bs': float(pedido[6]),
-                'observaciones': pedido[7]
-            },
-            'detalles': [
-                {
-                    'id_detalle': d[0],
-                    'id_producto': d[1],
-                    'producto': d[2],
-                    'cantidad': d[3],
-                    'precio_unitario_bs': float(d[4]),
-                    'subtotal_bs': float(d[5]),
-                    'observaciones': d[6]
-                }
-                for d in detalles
-            ]
+            'pedido': pedido,
+            'detalles': detalles
         }
 
 @router.post('/')
 async def crear_pedido(pedido: Pedido, conn = Depends(get_db)):
     try:
-        async with conn.cursor() as cur:
-            # Calcular el total del pedido
-            total_bs = 0.00
+        async with conn.cursor(row_factory=dict_row) as cur:
             detalles_con_precios = []
             
-            # Obtener precio de cada producto y calcular subtotales
             for detalle in pedido.detalles:
                 await cur.execute(
                     'SELECT precio_bs FROM productos WHERE id_producto = %s AND activo = TRUE',
@@ -102,83 +94,103 @@ async def crear_pedido(pedido: Pedido, conn = Depends(get_db)):
                 )
                 resultado = await cur.fetchone()
                 if resultado:
-                    precio_unitario = float(resultado[0])
-                    subtotal = precio_unitario * detalle.cantidad
-                    total_bs += subtotal
+                    precio_unitario = float(resultado['precio_bs'])
                     detalles_con_precios.append({
                         'id_producto': detalle.id_producto,
                         'cantidad': detalle.cantidad,
                         'precio_unitario': precio_unitario,
-                        'subtotal': subtotal,
                         'observaciones': detalle.observaciones
                     })
                 else:
                     return {'error': f'Producto con ID {detalle.id_producto} no encontrado'}
             
-            # Insertar el pedido principal
             await cur.execute(
-                '''INSERT INTO pedidos (numero_pedido, id_mesa, id_personal, estado, total_bs, observaciones) 
-                   VALUES (%s, %s, %s, %s, %s, %s) RETURNING id_pedido''',
-                (pedido.numero_pedido, pedido.id_mesa, pedido.id_personal, 
-                 pedido.estado, total_bs, pedido.observaciones)
+                '''INSERT INTO pedidos (id_mesa, id_personal, estado, observaciones) 
+                   VALUES (%s, %s, %s, %s) RETURNING id_pedido''',
+                (pedido.id_mesa, pedido.id_personal, 
+                 pedido.estado, pedido.observaciones)
             )
             id_pedido_row = await cur.fetchone()
-            id_pedido = id_pedido_row[0]
+            id_pedido = id_pedido_row['id_pedido']
             
-            # Insertar los detalles del pedido
+            fecha_str = datetime.now().strftime('%Y%m%d')
+            nuevo_codigo = f'PED-{fecha_str}-{id_pedido}'
+            
+            await cur.execute(
+                'UPDATE pedidos SET numero_pedido = %s WHERE id_pedido = %s',
+                (nuevo_codigo, id_pedido)
+            )
+            
             for detalle in detalles_con_precios:
                 await cur.execute(
-                    '''INSERT INTO detalle_pedidos (id_pedido, id_producto, cantidad, precio_unitario_bs, subtotal_bs, observaciones)
-                       VALUES (%s, %s, %s, %s, %s, %s)''',
+                    '''INSERT INTO detalle_pedidos (id_pedido, id_producto, cantidad, precio_unitario_bs, observaciones)
+                       VALUES (%s, %s, %s, %s, %s)''',
                     (id_pedido, detalle['id_producto'], detalle['cantidad'], 
-                     detalle['precio_unitario'], detalle['subtotal'], detalle['observaciones'])
+                     detalle['precio_unitario'], detalle['observaciones'])
                 )
             
             return {
                 'id_pedido': id_pedido,
-                'total_bs': total_bs,
-                'cantidad_productos': len(detalles_con_precios),
-                'mensaje': 'Pedido creado exitosamente con sus detalles'
+                'numero_pedido': nuevo_codigo,
+                'mensaje': 'Pedido creado exitosamente'
             }
     except Exception as e:
         return {'error': str(e)}
 
-@router.patch('/{id_pedido}/estado')
+@router.put('/{id_pedido}/estado')
 async def cambiar_estado_pedido(id_pedido: int, estado: str, conn = Depends(get_db)):
-    """
-    Cambiar el estado de un pedido.
-    Estados válidos: pendiente, en_proceso, completado, entregado, cancelado
-    """
-    async with conn.cursor() as cur:
+    async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             'UPDATE pedidos SET estado = %s WHERE id_pedido = %s RETURNING id_pedido, numero_pedido, estado',
             (estado, id_pedido)
         )
         resultado = await cur.fetchone()
         if resultado:
-            return {
-                'id_pedido': resultado[0],
-                'numero_pedido': resultado[1],
-                'nuevo_estado': resultado[2],
-                'mensaje': f'Estado cambiado a: {estado}'
-            }
+            return resultado
         else:
             return {'error': 'Pedido no encontrado'}
 
 @router.put('/{id}')
 async def actualizar_pedido(id: int, pedido: Pedido, conn = Depends(get_db)):
-    print("actualizando pedido")
-    async with conn.cursor() as cur:
+    async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             '''UPDATE pedidos SET numero_pedido = %s, id_mesa = %s, id_personal = %s, 
-               estado = %s, total_bs = %s, observaciones = %s WHERE id_pedido = %s''',
+               estado = %s, observaciones = %s WHERE id_pedido = %s''',
             (pedido.numero_pedido, pedido.id_mesa, pedido.id_personal, 
-             pedido.estado, pedido.total_bs, pedido.observaciones, id)
+             pedido.estado, pedido.observaciones, id)
         )
         return {'mensaje': 'Pedido actualizado exitosamente'}
 
+@router.get('/mesa/{id_mesa}/activo')
+async def obtener_pedido_activo_mesa(id_mesa: int, conn = Depends(get_db)):
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            '''SELECT id_pedido, numero_pedido, observaciones 
+               FROM pedidos WHERE id_mesa = %s AND estado IN ('pendiente', 'en_proceso', 'completado') 
+               AND activo = TRUE ORDER BY fecha_pedido DESC LIMIT 1''',
+            (id_mesa,)
+        )
+        pedido = await cur.fetchone()
+        if not pedido:
+            return None
+        
+        await cur.execute(
+            '''SELECT dp.id_detalle, pr.nombre AS producto, dp.cantidad, 
+                      (dp.cantidad * dp.precio_unitario_bs) as subtotal_bs, dp.observaciones 
+               FROM detalle_pedidos dp
+               JOIN productos pr ON dp.id_producto = pr.id_producto
+               WHERE dp.id_pedido = %s''',
+            (pedido['id_pedido'],)
+        )
+        detalles = await cur.fetchall()
+        
+        total_bs = sum(float(d['subtotal_bs']) for d in detalles)
+        pedido['total_bs'] = total_bs
+        
+        return {'pedido': pedido, 'detalles': detalles}
+
 @router.delete('/{id}')
 async def eliminar_pedido(id: int, conn = Depends(get_db)):
-    async with conn.cursor() as cur:
+    async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute('UPDATE pedidos SET activo = FALSE WHERE id_pedido = %s', (id,))
         return {'mensaje': 'Pedido eliminado exitosamente'}

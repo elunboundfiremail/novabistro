@@ -1,7 +1,8 @@
-﻿from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional
 from config.conexionDB import get_db
+from psycopg.rows import dict_row
 
 router = APIRouter(prefix='/productos', tags=['Productos'])
 
@@ -14,14 +15,14 @@ class Producto(BaseModel):
 
 @router.get('/')
 async def listar_productos(conn = Depends(get_db)):
-    async with conn.cursor() as cur:
+    async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute('SELECT * FROM productos WHERE activo = TRUE')
         productos = await cur.fetchall()
         return productos
 
 @router.post('/')
 async def crear_producto(producto: Producto, conn = Depends(get_db)):
-    async with conn.cursor() as cur:
+    async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             '''INSERT INTO productos (nombre, descripcion, precio_bs, id_categoria, disponible) 
                VALUES (%s, %s, %s, %s, %s) RETURNING id_producto''',
@@ -29,11 +30,11 @@ async def crear_producto(producto: Producto, conn = Depends(get_db)):
              producto.id_categoria, producto.disponible)
         )
         id_producto = await cur.fetchone()
-        return {'id_producto': id_producto[0], 'mensaje': 'Producto creado exitosamente'}
+        return {'id_producto': id_producto['id_producto'], 'mensaje': 'Producto creado exitosamente'}
 
 @router.put('/{id}')
 async def actualizar_producto(id: int, producto: Producto, conn = Depends(get_db)):
-    async with conn.cursor() as cur:
+    async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             '''UPDATE productos SET nombre = %s, descripcion = %s, precio_bs = %s, 
                id_categoria = %s, disponible = %s WHERE id_producto = %s''',
@@ -44,6 +45,6 @@ async def actualizar_producto(id: int, producto: Producto, conn = Depends(get_db
 
 @router.delete('/{id}')
 async def eliminar_producto(id: int, conn = Depends(get_db)):
-    async with conn.cursor() as cur:
+    async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute('UPDATE productos SET activo = FALSE WHERE id_producto = %s', (id,))
         return {'mensaje': 'Producto eliminado exitosamente'}

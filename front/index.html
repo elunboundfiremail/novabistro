@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>NovaBistro - Sistema Profesional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="font-sans antialiased text-neutral-200 bg-[#0a0a0a]">
+
+    <!-- SECCIÓN LOGIN -->
+    <div id="login-vista" class="min-h-screen flex items-center justify-center p-4">
+        <div class="panel-oscuro p-10 w-full max-w-md border-t-4 border-amber-700 shadow-2xl">
+            <h1 class="text-4xl font-black text-center mb-8 text-amber-600 tracking-tighter uppercase">NovaBistro</h1>
+            <div class="space-y-5">
+                <div><label class="text-[10px] text-neutral-500 uppercase font-black mb-1 block">Usuario (C.I.)</label><input type="number" id="login-ci" class="w-full p-3 bg-neutral-900 border-neutral-800 border rounded text-white focus:border-amber-600 outline-none"></div>
+                <div><label class="text-[10px] text-neutral-500 uppercase font-black mb-1 block">Contraseña</label><input type="password" id="login-pass" class="w-full p-3 bg-neutral-900 border-neutral-800 border rounded text-white focus:border-amber-600 outline-none"></div>
+                <button onclick="login()" class="w-full p-4 bg-amber-700 hover:bg-amber-600 text-white rounded font-black uppercase tracking-[0.2em] text-xs transition-all shadow-lg">Acceder</button>
+                <p id="error-login" class="text-red-500 text-[10px] text-center hidden font-bold uppercase tracking-widest">Credenciales Incorrectas</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- APP PRINCIPAL -->
+    <div id="app-vista" class="flex flex-col h-screen overflow-hidden">
+        <header class="header-bistro text-white p-4 flex justify-between items-center no-imprimir">
+            <div class="flex gap-6 items-center">
+                <span class="font-black text-2xl text-amber-600 tracking-tighter italic uppercase">NOVABISTRO</span>
+                <span id="txt-nombre-usuario" class="text-[10px] bg-neutral-900 px-3 py-1 rounded border border-neutral-800 text-amber-200 font-black uppercase tracking-widest"></span>
+            </div>
+            <nav id="menu-navegacion" class="flex gap-10 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500"></nav>
+            <button onclick="salir()" class="text-neutral-600 hover:text-white text-[10px] font-black tracking-widest transition uppercase">Salir</button>
+        </header>
+
+        <main class="flex-1 overflow-auto p-6 bg-[#0a0a0a]">
+            
+            <!-- DASHBOARD ADMIN -->
+            <section id="panel-admin" class="seccion space-y-8 pb-20"></section>
+
+            <!-- PANEL REPORTES -->
+            <section id="panel-reportes" class="seccion space-y-8 pb-20">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="panel-oscuro p-6 border-l-4 border-emerald-600 shadow-xl"><h3 class="font-black text-[10px] uppercase text-neutral-500 mb-4 tracking-widest">Ventas de Hoy</h3><div id="cont-reporte-diario"></div></div>
+                    <div class="panel-oscuro p-6 border-l-4 border-amber-600 shadow-xl"><h3 class="font-black text-[10px] uppercase text-neutral-500 mb-4 tracking-widest">Ventas por Categoría</h3><div id="cont-reporte-general"></div></div>
+                </div>
+                <div class="panel-oscuro p-6"><h3 class="font-black text-[10px] uppercase text-neutral-500 mb-6 tracking-widest">Auditoría de Personal</h3><div class="flex gap-4 mb-8"><select id="sel-personal-reporte" class="flex-1 p-3 bg-neutral-900 border border-neutral-800 rounded text-white text-xs outline-none focus:border-amber-600"></select><button onclick="generarReportePersonal()" class="bg-amber-700 px-6 py-2 rounded text-[10px] font-black uppercase tracking-widest">Analizar</button></div><div id="cont-reporte-individual" class="bg-neutral-900/30 rounded p-4 border border-neutral-800 hidden"></div></div>
+            </section>
+
+            <!-- PANEL SALÓN -->
+            <section id="panel-mesero" class="seccion">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
+                    <div class="lg:col-span-2 space-y-8">
+                        <div id="grilla-mesas" class="grid grid-cols-3 md:grid-cols-6 gap-4"></div>
+                        
+                        <!-- ÁREA DE ACCIÓN DINÁMICA -->
+                        <div id="contenedor-salon" class="panel-oscuro p-6 hidden border-2 border-neutral-800 shadow-2xl">
+                            <div class="flex flex-wrap justify-between items-center mb-6 border-b border-neutral-800 pb-4 gap-4">
+                                <h3 id="titulo-mesa" class="font-black text-sm uppercase text-amber-600 font-mono tracking-widest"></h3>
+                                <div id="cont-categorias-salon" class="flex flex-wrap gap-2"></div>
+                            </div>
+
+                            <!-- VISTA MESA ROJA: DETALLE -->
+                            <div id="vista-detalle-ocupada" class="hidden space-y-6">
+                                <div id="contenido-detalle-json" class="space-y-3"></div>
+                                <div id="footer-monto-roja" class="border-t border-neutral-800 pt-4 flex justify-between items-center">
+                                    <span class="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Monto Acumulado</span>
+                                    <span id="txt-total-roja" class="font-black text-3xl text-white tracking-tighter"></span>
+                                </div>
+                            </div>
+
+                            <!-- VISTA MESA VERDE: MENU -->
+                            <div id="vista-menu-libre" class="hidden">
+                                <div id="items-menu" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PANEL CARRITO REGISTRO -->
+                    <div id="panel-carrito-registro" class="panel-oscuro p-6 h-fit border-2 border-neutral-800 shadow-2xl sticky top-6 hidden">
+                        <h3 class="font-black text-xs uppercase text-amber-600 mb-6 border-b border-neutral-800 pb-4 text-center tracking-[0.3em]">Nueva Orden</h3>
+                        <div id="carrito" class="space-y-4 mb-10 min-h-[100px]"></div>
+                        <div class="border-t border-neutral-800 pt-6 text-center">
+                            <div class="text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2">Total Pedido</div>
+                            <div class="font-black text-4xl text-white mb-8 tracking-tighter">Bs. <span id="total-bs">0.00</span></div>
+                            <button onclick="enviarPedido()" class="w-full p-5 bg-amber-700 hover:bg-amber-600 text-white rounded font-black uppercase text-xs tracking-widest shadow-xl">Confirmar Pedido</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="panel-cocina" class="seccion"><div id="lista-cocina" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div></section>
+            <section id="panel-caja" class="seccion"><div id="lista-caja" class="grid grid-cols-1 md:grid-cols-4 gap-6"></div></section>
+        </main>
+    </div>
+
+    <!-- MODALES -->
+    <div id="modal-personal" class="fixed inset-0 bg-black bg-opacity-95 hidden flex items-center justify-center p-4 z-50">
+        <div class="panel-oscuro p-10 w-full max-w-xl border-amber-700 border shadow-2xl">
+            <h3 id="form-titulo-p" class="font-black text-amber-600 uppercase mb-8 text-center tracking-widest border-b border-neutral-800 pb-4">Ficha Personal</h3>
+            <div class="grid grid-cols-2 gap-6">
+                <div><label class="text-[9px] text-neutral-500 uppercase font-black block mb-1">C.I.</label><input id="p-ci" type="number" class="w-full p-2 bg-neutral-900 border-neutral-800 border rounded text-white outline-none"></div>
+                <div><label class="text-[9px] text-neutral-500 uppercase font-black block mb-1">Rol</label><select id="p-rol" class="w-full p-2 bg-neutral-900 border-neutral-800 border rounded text-white outline-none"><option value="1">ADMIN</option><option value="2">MESERO</option><option value="3">COCINA</option><option value="4">CAJA</option></select></div>
+                <div><label class="text-[9px] text-neutral-500 uppercase font-black block mb-1">Nombre</label><input id="p-nombre" type="text" class="w-full p-2 bg-neutral-900 border-neutral-800 border rounded text-white outline-none"></div>
+                <div><label class="text-[9px] text-neutral-500 uppercase font-black block mb-1">Ap. Paterno</label><input id="p-paterno" type="text" class="w-full p-2 bg-neutral-900 border-neutral-800 border rounded text-white outline-none"></div>
+                <div><label class="text-[9px] text-neutral-500 uppercase font-black block mb-1">Ap. Materno</label><input id="p-materno" type="text" class="w-full p-2 bg-neutral-900 border-neutral-800 border rounded text-white outline-none"></div>
+                <div><label class="text-[9px] text-neutral-500 uppercase font-black block mb-1">Teléfono</label><input id="p-tel" type="text" class="w-full p-2 bg-neutral-900 border-neutral-800 border rounded text-white outline-none"></div>
+                <div class="col-span-2"><label class="text-[9px] text-neutral-500 uppercase font-black block mb-1">Correo</label><input id="p-email" type="email" class="w-full p-2 bg-neutral-900 border-neutral-800 border rounded text-white outline-none"></div>
+                <div class="col-span-2"><label class="text-[9px] text-neutral-500 uppercase font-black block mb-1">Dirección</label><input id="p-dir" type="text" class="w-full p-2 bg-neutral-900 border-neutral-800 border rounded text-white outline-none"></div>
+            </div>
+            <div class="mt-10 flex gap-4"><button onclick="cerrarModal('personal')" class="flex-1 p-3 bg-neutral-800 text-neutral-400 rounded font-black text-[10px] uppercase">Cancelar</button><button id="btn-guardar-p" class="flex-1 p-3 bg-amber-700 text-white rounded font-black text-[10px] uppercase">Guardar</button></div>
+        </div>
+    </div>
+
+    <div id="modal-producto" class="fixed inset-0 bg-black bg-opacity-95 hidden flex items-center justify-center p-4 z-50">
+        <div class="panel-oscuro p-10 w-full max-w-md border-amber-700 border shadow-2xl">
+            <h3 id="form-titulo-pr" class="font-black text-amber-600 uppercase mb-8 text-center border-b border-neutral-800 pb-4 tracking-widest">Datos Producto</h3>
+            <div class="space-y-4">
+                <div><label class="text-[9px] text-neutral-500 uppercase font-black block mb-1">Nombre</label><input id="pr-nombre" type="text" class="w-full p-3 bg-neutral-900 border-neutral-800 border rounded text-white outline-none"></div>
+                <div><label class="text-[9px] text-neutral-500 uppercase font-black block mb-1">Precio Bs</label><input id="pr-precio" type="number" step="0.1" class="w-full p-3 bg-neutral-900 border-neutral-800 border rounded text-white outline-none"></div>
+                <div><label class="text-[9px] text-neutral-500 uppercase font-black block mb-1">Categoría</label><select id="pr-cat" class="w-full p-3 bg-neutral-900 border-neutral-800 border rounded text-white outline-none"></select></div>
+                <div><label class="text-[9px] text-neutral-500 uppercase font-black block mb-1">Descripción</label><textarea id="pr-desc" class="w-full p-3 bg-neutral-900 border-neutral-800 border rounded text-white outline-none h-24 text-xs"></textarea></div>
+            </div>
+            <div class="mt-10 flex gap-4"><button onclick="cerrarModal('producto')" class="flex-1 p-4 bg-neutral-800 text-neutral-400 rounded font-black text-[10px] uppercase">Cancelar</button><button id="btn-guardar-pr" class="flex-1 p-4 bg-amber-700 text-white rounded font-black text-[10px] uppercase">Guardar</button></div>
+        </div>
+    </div>
+
+    <div id="modal-categoria" class="fixed inset-0 bg-black bg-opacity-95 hidden flex items-center justify-center p-4 z-50">
+        <div class="panel-oscuro p-10 w-full max-w-md border-amber-700 border shadow-2xl">
+            <h3 id="form-titulo-cat" class="font-black text-amber-600 uppercase mb-8 text-center border-b border-neutral-800 pb-4 tracking-widest">Categoría</h3>
+            <div><label class="text-[9px] text-neutral-500 uppercase font-black block mb-1">Nombre</label><input id="cat-nombre" type="text" class="w-full p-3 bg-neutral-900 border-neutral-800 border rounded text-white outline-none"></div>
+            <div class="mt-10 flex gap-4"><button onclick="cerrarModal('categoria')" class="flex-1 p-4 bg-neutral-800 text-neutral-400 rounded font-black text-[10px] uppercase tracking-widest">Cancelar</button><button id="btn-guardar-cat" class="flex-1 p-4 bg-amber-700 text-white rounded font-black text-[10px] uppercase">Guardar</button></div>
+        </div>
+    </div>
+
+    <div id="zona-impresion" class="solo-imprimir hidden"><div id="detalle-impresion"></div></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
