@@ -153,28 +153,29 @@ async function cargarCaja() {
 
 async function imprimir(id, nm) {
     const res = await fetch(`${URL}/reportes/individual/pedido/${id}`); const d = await res.json(); const rep = d.reporte_pedido;
-    let htmlTicket = `<div style="font-family: 'Courier New', Courier, monospace; color: black; background: white; padding: 30px; border: 1px solid #000; max-width: 400px; margin: auto;">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <h2 style="margin: 0; font-size: 22px;">NOVABISTRO</h2>
-            <p style="margin: 5px 0; font-size: 12px; font-weight: bold;">*** RECIBO DE PAGO ***</p>
+    let htmlTicket = `<div style="padding: 5px; font-size: 11px;">
+        <div style="text-align: center; margin-bottom: 15px;">
+            <h2 style="margin: 0; font-size: 18px; letter-spacing: -1px;">NOVABISTRO</h2>
+            <p style="margin: 2px 0; font-size: 9px; font-weight: bold; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 2px 0; margin: 5px 0;">*** RECIBO DE PAGO ***</p>
         </div>
-        <div style="font-size: 11px; margin-bottom: 15px;">
-            <p style="margin: 2px 0;"><b>TICKET:</b> ${rep.numero_pedido}</p>
-            <p style="margin: 2px 0;"><b>FECHA:</b> ${new Date(rep.fecha).toLocaleString()}</p>
-            <p style="margin: 2px 0;"><b>MESA:</b> ${rep.mesa} | <b>ATENDIÓ:</b> ${rep.mesero}</p>
+        <div style="margin-bottom: 10px; font-size: 10px;">
+            <p style="margin: 2px 0;">TICKET: ${rep.numero_pedido}</p>
+            <p style="margin: 2px 0;">FECHA : ${new Date(rep.fecha).toLocaleString()}</p>
+            <p style="margin: 2px 0;">MESA  : ${rep.mesa} | ATENDIO: ${rep.mesero.split(' ')[0]}</p>
         </div>
-        <table style="width: 100%; font-size: 11px; border-collapse: collapse; border-top: 1px dashed #000; border-bottom: 1px dashed #000; margin-bottom: 15px;">
-            <thead><tr><th style="text-align: left; padding: 5px 0;">CANT.</th><th style="text-align: left;">PRODUCTO</th><th style="text-align: right;">BS.</th></tr></thead>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; border-bottom: 1px dashed #000;">
+            <thead><tr style="border-bottom: 1px solid #000; border-top: 1px solid #000;"><th style="text-align: left; padding: 3px 0;">CANT</th><th style="text-align: left;">DESC</th><th style="text-align: right;">BS</th></tr></thead>
             <tbody>
-                ${d.detalles.map(it => `<tr><td style="padding: 3px 0;">${it.cantidad}</td><td>${it.producto}</td><td style="text-align: right;">${parseFloat(it.subtotal).toFixed(2)}</td></tr>`).join('')}
+                ${d.detalles.map(it => `<tr><td style="padding: 4px 0;">${it.cantidad}</td><td style="text-transform: uppercase;">${it.producto}</td><td style="text-align: right;">${parseFloat(it.subtotal).toFixed(2)}</td></tr>`).join('')}
             </tbody>
         </table>
-        <div style="text-align: right; font-size: 16px; font-weight: bold;">
+        <div style="text-align: right; font-size: 14px; font-weight: bold; margin-bottom: 20px;">
             TOTAL: Bs. ${parseFloat(rep.total_bs).toFixed(2)}
         </div>
-        <div style="text-align: center; margin-top: 30px; font-size: 10px;">
+        <div style="text-align: center; font-size: 9px; line-height: 1.2;">
             <p>¡GRACIAS POR SU PREFERENCIA!</p>
             <p>SANTACRUZ - BOLIVIA</p>
+            <p style="margin-top: 10px;">*************************</p>
         </div>
     </div>`;
     document.getElementById('detalle-impresion').innerHTML = htmlTicket;

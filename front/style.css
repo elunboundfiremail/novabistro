@@ -11,4 +11,10 @@ input[type=number] { -moz-appearance: textfield; }
 .seccion { display: none; }
 .activa { display: block; }
 .tabla-scroll { overflow-x: auto; white-space: nowrap; }
-@media print { .no-imprimir { display: none; } .solo-imprimir { display: block; color: black; background: white; padding: 40px; } }
+@media print { 
+    @page { size: 80mm auto; margin: 0; }
+    body { background: white !important; color: black !important; margin: 0; padding: 0; }
+    .no-imprimir, header, main, #app-vista, .seccion { display: none !important; } 
+    .solo-imprimir { display: block !important; width: 80mm !important; padding: 5mm !important; margin: 0 !important; } 
+    #detalle-impresion { width: 100%; font-family: 'Courier New', Courier, monospace; }
+}
